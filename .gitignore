@@ -1,0 +1,33 @@
+.encryptedKey.json
+# vscode
+.vscode
+
+# hardhat
+artifacts
+cache
+deployments
+node_modules
+coverage
+coverage.json
+
+# don't push the environment vars!
+.env
+
+# Built application files
+.DS*
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+#  Uncomment the following line in case you need and you don't have the release build type files in your app
+# release/
