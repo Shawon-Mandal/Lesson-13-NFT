@@ -3,7 +3,7 @@ const { developmentChains, networkConfig } = require("../helper-hardhat-config")
 const { verify } = require("../utils/verify")
 const { storeImages, storeTokenUriMetadata } = require("../utils/uploadToPinata")
 
-const imagesLocation = "./images/randomNft"
+const imagesLocation = "./images/randomNft/"
 const metadataTemplate = {
     name: "",
     description: "",
@@ -20,12 +20,18 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
     const chainId = network.config.chainId
-    let tokenUris
+
     //get the IPFS hashes of our Images
     if (process.env.UPLOAD_TO_PINATA == "true") {
         tokenUris = await handleTokenUris()
     }
+    let tokenUris = [
+        "ipfs://QmZMrSUiYFWUJfWM4DPnssxYSZYsqjGPt9cnDLMQD6GGdQ",
+        "ipfs://QmcowNmkHWmmQgHZKFMKDqYnM97XDzv5zE25jA5NkNc9QJ",
+        "ipfs://QmXwdiwqCmRXg7P5dCFJ2L7F1p1cvgr9E6U2dZUBpG4Hhi",
+    ]
 
+    const FUND_AMOUNT = "1000000000000000000000"
     let vrfCoordinatorV2Address, subscriptionId
 
     if (developmentChains.includes(network.name)) {
@@ -34,6 +40,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const tx = await vrfCoordinatorV2Mock.createSubscription()
         const txReceipt = await tx.wait(1)
         subscriptionId = txReceipt.events[0].args.subId
+        await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, FUND_AMOUNT)
     } else {
         vrfCoordinatorV2Address = networkConfig[chainId].vrfCoordinatorV2
         subscriptionId = networkConfig[chainId].subscriptionId
@@ -41,16 +48,27 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
     log("-----------------------------------------------------------")
 
-    // await storeImages(imagesLocation)
-    // const args = [
-    //     vrfCoordinatorV2Address,
-    //     subscriptionId,
-    //     networkConfig[chainId].gasLane,
-    //     networkConfig[chainId].mintFee,
-    //     networkConfig[chainId].callbackGasLimit,
-    //     //tokenUris,
-    //     networkConfig[chainId].mintFee,
-    // ]
+    const args = [
+        vrfCoordinatorV2Address,
+        subscriptionId,
+        networkConfig[chainId].gasLane,
+        networkConfig[chainId].callbackGasLimit,
+        tokenUris,
+        networkConfig[chainId].mintFee,
+    ]
+    const randomipfsNft = await deploy("RandomIpfsNft", {
+        //we are deploying our contract by uploading the token uri in the contract
+        from: deployer,
+        args: args,
+        log: true,
+        waitConfirmations: network.config.blockConfirmations || 1,
+    })
+    log("-----------------------------------------------------------")
+    // Verify the deployment
+    if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
+        log("Verifying...")
+        await verify(randomipfsNft.address, args)
+    }
 }
 
 async function handleTokenUris() {
@@ -63,7 +81,7 @@ async function handleTokenUris() {
         //upload the metadata
         let tokenUriMetadata = { ...metadataTemplate } //... means unpacked
         tokenUriMetadata.name = files[imageUploadResponseIndex].replace(".png", "") //token meta data is going to leave the extension(replace .png with nothing)
-        tokenUriMetadata.description = `An adorable ${tokenUriMetadata.name}pup!`
+        tokenUriMetadata.description = `An adorable ${tokenUriMetadata.name} pup!`
         tokenUriMetadata.image = `ipfs://${imageUploadResponses[imageUploadResponseIndex].IpfsHash}`
         console.log(`Uploading ${tokenUriMetadata.name}...`)
         //store the JSON to pinata /IPFS

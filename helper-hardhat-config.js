@@ -8,6 +8,7 @@ const networkConfig = {
         subscriptionId: "8204",
         callbackGasLimit: "500000",
         interval: "30",
+        mintFee: "10000000000000000",
     },
     31337: {
         name: "hardhat",
@@ -17,6 +18,7 @@ const networkConfig = {
         callbackGasLimit: "500000",
         interval: "30",
         subscriptionId: "0",
+        mintFee: "10000000000000000",
     },
 }
 
