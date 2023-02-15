@@ -1,13 +1,14 @@
-//tests
+// We are going to skimp a bit on these tests...
 
 const { assert, expect } = require("chai")
-const { network, ethers, deployments } = require("hardhat")
+const { network, deployments, ethers } = require("hardhat")
 const { developmentChains } = require("../../helper-hardhat-config")
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("Random IPFS NFT Tests", function () {
+    : describe("Random IPFS NFT Unit Tests", function () {
           let randomIpfsNft, deployer, vrfCoordinatorV2Mock
+
           beforeEach(async () => {
               accounts = await ethers.getSigners()
               deployer = accounts[0]
@@ -20,7 +21,7 @@ const { developmentChains } = require("../../helper-hardhat-config")
               it("sets starting values correctly", async function () {
                   const dogTokenUriZero = await randomIpfsNft.getDogTokenUris(0)
                   const isInitialized = await randomIpfsNft.getInitialized()
-                  assert(dogTokenUriZero.inclues("ipfs://"))
+                  assert(dogTokenUriZero.includes("ipfs://"))
                   assert.equal(isInitialized, true)
               })
           })
@@ -37,7 +38,7 @@ const { developmentChains } = require("../../helper-hardhat-config")
                       randomIpfsNft.requestNft({
                           value: fee.sub(ethers.utils.parseEther("0.001")),
                       })
-                  ).to.be.revertedWith("RandomIpfsNft_NeedMoreETHSent")
+                  ).to.be.revertedWith("RandomIpfsNft__NeedMoreETHSent")
               })
               it("emits an event and kicks off a random word request", async function () {
                   const fee = await randomIpfsNft.getMintFee()
@@ -52,14 +53,14 @@ const { developmentChains } = require("../../helper-hardhat-config")
                   await new Promise(async (resolve, reject) => {
                       randomIpfsNft.once("NftMinted", async () => {
                           try {
-                              const tokenUri = await randomIpfsNft.tokenUri("0")
+                              const tokenUri = await randomIpfsNft.tokenURI("0")
                               const tokenCounter = await randomIpfsNft.getTokenCounter()
-                              assert.equal(tokenUri.toString().inclues("ipfs://"), true)
-                              assert.equal(tokencounter.toString(), "1")
+                              assert.equal(tokenUri.toString().includes("ipfs://"), true)
+                              assert.equal(tokenCounter.toString(), "1")
                               resolve()
-                          } catch (error) {
-                              console.log(error)
-                              reject(error)
+                          } catch (e) {
+                              console.log(e)
+                              reject(e)
                           }
                       })
                       try {
@@ -72,9 +73,9 @@ const { developmentChains } = require("../../helper-hardhat-config")
                               requestNftReceipt.events[1].args.requestId,
                               randomIpfsNft.address
                           )
-                      } catch (error) {
-                          console.log(error)
-                          reject(error)
+                      } catch (e) {
+                          console.log(e)
+                          reject(e)
                       }
                   })
               })
@@ -84,15 +85,15 @@ const { developmentChains } = require("../../helper-hardhat-config")
                   const expectedValue = await randomIpfsNft.getBreedFromModdedRng(7)
                   assert.equal(0, expectedValue)
               })
-              it("should return shiba-inu if moddedRng is between 10-39", async function () {
+              it("should return shiba-inu if moddedRng is between 10 - 39", async function () {
                   const expectedValue = await randomIpfsNft.getBreedFromModdedRng(21)
                   assert.equal(1, expectedValue)
               })
-              it("should return st.bernard if moddedRng is between 40-99", async function () {
+              it("should return st. bernard if moddedRng is between 40 - 99", async function () {
                   const expectedValue = await randomIpfsNft.getBreedFromModdedRng(77)
                   assert.equal(2, expectedValue)
               })
-              it("should revert if moddedRng>99", async function () {
+              it("should revert if moddedRng > 99", async function () {
                   await expect(randomIpfsNft.getBreedFromModdedRng(100)).to.be.revertedWith(
                       "RandomIpfsNft__RangeOutOfBounds"
                   )
