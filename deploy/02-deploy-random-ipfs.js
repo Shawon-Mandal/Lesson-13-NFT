@@ -4,6 +4,11 @@ const { verify } = require("../utils/verify")
 const { storeImages, storeTokenUriMetadata } = require("../utils/uploadToPinata")
 
 const imagesLocation = "./images/randomNft/"
+let tokenUris = [
+    "ipfs://QmZMrSUiYFWUJfWM4DPnssxYSZYsqjGPt9cnDLMQD6GGdQ",
+    "ipfs://QmcowNmkHWmmQgHZKFMKDqYnM97XDzv5zE25jA5NkNc9QJ",
+    "ipfs://QmXwdiwqCmRXg7P5dCFJ2L7F1p1cvgr9E6U2dZUBpG4Hhi",
+]
 const metadataTemplate = {
     name: "",
     description: "",
@@ -25,17 +30,12 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     if (process.env.UPLOAD_TO_PINATA == "true") {
         tokenUris = await handleTokenUris()
     }
-    let tokenUris = [
-        "ipfs://QmZMrSUiYFWUJfWM4DPnssxYSZYsqjGPt9cnDLMQD6GGdQ",
-        "ipfs://QmcowNmkHWmmQgHZKFMKDqYnM97XDzv5zE25jA5NkNc9QJ",
-        "ipfs://QmXwdiwqCmRXg7P5dCFJ2L7F1p1cvgr9E6U2dZUBpG4Hhi",
-    ]
 
     const FUND_AMOUNT = "1000000000000000000000"
-    let vrfCoordinatorV2Address, subscriptionId
+    let vrfCoordinatorV2Address, subscriptionId, vrfCoordinatorV2Mock
 
     if (developmentChains.includes(network.name)) {
-        const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
+        vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
         vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address
         const tx = await vrfCoordinatorV2Mock.createSubscription()
         const txReceipt = await tx.wait(1)
@@ -52,9 +52,9 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         vrfCoordinatorV2Address,
         subscriptionId,
         networkConfig[chainId].gasLane,
+        networkConfig[chainId].mintFee,
         networkConfig[chainId].callbackGasLimit,
         tokenUris,
-        networkConfig[chainId].mintFee,
     ]
     const randomipfsNft = await deploy("RandomIpfsNft", {
         //we are deploying our contract by uploading the token uri in the contract
@@ -64,6 +64,11 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         waitConfirmations: network.config.blockConfirmations || 1,
     })
     log("-----------------------------------------------------------")
+
+    if (chainId == 31337) {
+        await vrfCoordinatorV2Mock.addConsumer(subscriptionId, randomipfsNft.address)
+    }
+
     // Verify the deployment
     if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
         log("Verifying...")
